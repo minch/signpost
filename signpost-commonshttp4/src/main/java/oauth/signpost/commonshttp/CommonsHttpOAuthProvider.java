@@ -40,7 +40,7 @@ public class CommonsHttpOAuthProvider extends AbstractOAuthProvider {
     public CommonsHttpOAuthProvider(String requestTokenEndpointUrl, String accessTokenEndpointUrl,
             String authorizationWebsiteUrl) {
         super(requestTokenEndpointUrl, accessTokenEndpointUrl, authorizationWebsiteUrl);
-        this.httpClient = new DefaultHttpClient();
+        this.httpClient = getTolerantHttpClient();
     }
 
     public CommonsHttpOAuthProvider(String requestTokenEndpointUrl, String accessTokenEndpointUrl,
@@ -51,6 +51,27 @@ public class CommonsHttpOAuthProvider extends AbstractOAuthProvider {
 
     public void setHttpClient(HttpClient httpClient) {
         this.httpClient = httpClient;
+    }
+
+    public static HttpClient getTolerantHttpClient() {
+        try {
+            SSLSocketFactory sf = new SSLSocketFactory(new TrustStrategy() {
+
+            @Override
+            public boolean isTrusted(X509Certificate[] chain,
+                String authType) throws CertificateException {
+                // TODO:  Perhaps add checking on the domain here.
+                return true;
+              }
+            });
+
+            SchemeRegistry registry = new SchemeRegistry();
+            registry.register(new Scheme("https", 443, sf));
+            ClientConnectionManager ccm = new ThreadSafeClientConnManager(registry);
+            return new DefaultHttpClient(ccm);
+          } catch (Exception e) {
+            return new DefaultHttpClient();
+          }
     }
 
     @Override
